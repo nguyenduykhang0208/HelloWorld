@@ -58,7 +58,7 @@ let getAllClinic = () => {
 let getAllClinicPagination = (data) => {
     return new Promise(async (resolve, reject) => {
         try {
-            let clinics = '';
+            let clinics_arr = '';
             let { perPage, page } = data;
             let keyword = data.keyword ? data.keyword : "";
             let tableName = 'clinics';
@@ -74,15 +74,15 @@ let getAllClinicPagination = (data) => {
                     ]
                 }
             }).then(data => {
-                clinics = CommonUtils.getPagingData(data, +page, limit, tableName)
+                clinics_arr = CommonUtils.getPagingData(data, +page, limit, tableName)
             })
-            // if (clinics && clinics.length > 0) {
-            //     clinics.map(item => {
-            //         item.image = new Buffer(item.image, 'base64').toString('binary');
-            //         return item;
-            //     })
-            // }
-            resolve(clinics)
+            if (clinics_arr?.clinics && clinics_arr?.clinics.length > 0) {
+                clinics_arr?.clinics.map(item => {
+                    item.image = new Buffer(item.image, 'base64').toString('binary');
+                    return item;
+                })
+            }
+            resolve(clinics_arr)
         } catch (error) {
             reject(error);
         }

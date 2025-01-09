@@ -1,8 +1,11 @@
 import { first } from "lodash";
 import db from "../models/index"
 import emailService from './emailService'
+import userService from './userService'
 import { v4 as uuidv4 } from 'uuid';
 import { where } from "sequelize";
+import bcrypt from "bcryptjs"
+const salt = bcrypt.genSaltSync(10);
 
 let buildUrlEmail = (doctorId, token) => {
     let result = `${process.env.URL_REACT}/confirm-booking?token=${token}&doctorId=${doctorId}`;
@@ -28,48 +31,78 @@ let createAppointment = (data) => {
                     language: data.language,
                     redirectLink: buildUrlEmail(data.doctorId, token)
                 })
-                // let user = await db.User.findOrCreate({
-                //     where: { email: data.email },
-                //     defaults: {
-                //         email: data.email,
-                //         roleId: 'R3',
-                //         positionId: 'P10',
-                //         gender: data.selectedGender,
-                //         address: data.address,
-                //         firstName: data.fullName
-                //     }
-                // });
-                // if (user && user[0]) {
-                const [demo, created] = await db.booking.findOrCreate({
-                    where: { patientId: data.patientId, date_booked_stamp: data.date_booked_stamp, doctorId: data.doctorId },
+                const [user, created] = await db.User.findOrCreate({
+                    where: { email: data.email },
                     defaults: {
-                        statusId: 'S1',
-                        patientId: data.patientId,
-                        doctorId: data.doctorId,
                         email: data.email,
-                        // patientId: user[0].id,
-                        birthDay: data.birthDay,
-                        timeType: data.timeType,
-                        token: token,
-                        note: data.note,
-                        disease_desc: data.disease_desc,
-                        date_booked: data.date_booked,
-                        date_booked_stamp: data.date_booked_stamp
+                        roleId: 'R3',
+                        positionId: 'P10',
+                        gender: data.selectedGender,
+                        phoneNumber: data.phoneNumber,
+                        password: bcrypt.hashSync('123456', salt),
+                        address: data.address,
+                        firstName: data.fullName,
+                        lastName: data.fullName
                     }
-                })
+                });
+                if (user && created === true) {
+                    const [patient, createdPatient] = await db.Patient.findOrCreate({
+                        where: { patientId: user.id },
+                        defaults: {
+                            patientId: user.id,
+                            birthDay: data.birthDay,
+                            phoneNumber2: data.phoneNumber
+                        }
+                    });
+
+                    const [booking, created] = await db.booking.findOrCreate({
+                        where: { patientId: user.id, date_booked_stamp: data.date_booked_stamp, doctorId: data.doctorId },
+                        defaults: {
+                            statusId: 'S1',
+                            doctorId: data.doctorId,
+                            email: data.email,
+                            patientId: user.id,
+                            birthDay: data.birthDay,
+                            timeType: data.timeType,
+                            token: token,
+                            note: data.note,
+                            disease_desc: data.disease_desc,
+                            date_booked: data.date_booked,
+                            date_booked_stamp: data.date_booked_stamp
+                        }
+                    })
+                }
+                else {
+                    const [demo, created] = await db.booking.findOrCreate({
+                        where: { patientId: data.patientId, date_booked_stamp: data.date_booked_stamp, doctorId: data.doctorId },
+                        defaults: {
+                            statusId: 'S1',
+                            patientId: data.patientId,
+                            doctorId: data.doctorId,
+                            email: data.email,
+                            birthDay: data.birthDay,
+                            timeType: data.timeType,
+                            token: token,
+                            note: data.note,
+                            disease_desc: data.disease_desc,
+                            date_booked: data.date_booked,
+                            date_booked_stamp: data.date_booked_stamp
+                        }
+                    })
+                }
                 let schedule = await db.schedules.findOne({
-                    where: { timeType: data.timeType, doctorId: data.doctorId, date_time_stamp: data.date_booked_stamp }
+                    where: { timeType: data.timeType, doctorId: data.doctorId, date_time_stamp: data.date_booked_stamp },
+                    raw: false
                 })
                 if (schedule) {
                     schedule.currentNumber += 1;
-                    // await schedule.save();
+                    await schedule.save();
                 }
-                // }
-                resolve({
-                    errCode: 0,
-                    errMessage: 'OK'
-                })
             }
+            resolve({
+                errCode: 0,
+                errMessage: 'OK'
+            })
         }
         catch (error) {
             reject(error);
@@ -96,6 +129,7 @@ let confirmAppointment = (data) => {
                     },
                     raw: false
                 })
+                console.log('check appoinment', data);
                 if (appointment) {
                     appointment.statusId = 'S2';
                     await appointment.save();

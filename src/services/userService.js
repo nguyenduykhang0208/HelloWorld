@@ -393,6 +393,15 @@ let cancelAppointMent = (appointmentId) => {
                 if (appointment) {
                     appointment.statusId = 'S4';
                     await appointment.save();
+
+                    let schedule = await db.schedules.findOne({
+                        where: { timeType: appointment.timeType, doctorId: appointment.doctorId, date_time_stamp: appointment.date_booked_stamp },
+                        raw: false
+                    })
+                    if (schedule) {
+                        schedule.currentNumber -= 1;
+                        await schedule.save();
+                    }
                 }
                 res.errCode = 0;
                 res.errMessage = 'OK';

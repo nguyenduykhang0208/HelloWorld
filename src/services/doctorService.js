@@ -553,7 +553,7 @@ let createInvoice = (data) => {
         const t = await db.sequelize.transaction(); // Bắt đầu transaction
         try {
             // Kiểm tra tham số bắt buộc
-            if (!data.patientId || !data.doctorId || !data.bookingId || !data.price || !data.status || !data.note || !data.list_medicines) {
+            if (!data.patientId || !data.doctorId || !data.bookingId || !data.price || !data.status || !data.list_medicines) {
                 resolve({
                     errCode: 1,
                     errMessage: 'Missing required parameters!'
@@ -574,6 +574,13 @@ let createInvoice = (data) => {
                     { statusId: 'S3' },
                     { where: { id: data.bookingId }, transaction: t }
                 );
+                let doctor = await db.Doctor.findOne({
+                    where: { doctorId: data.doctorId },
+                    raw: false
+                })
+
+                doctor.count += 1;
+                await doctor.save();
                 // Duyệt qua danh sách thuốc
                 if (Array.isArray(data.list_medicines) && data.list_medicines.length > 0) {
                     for (let item of data.list_medicines) {

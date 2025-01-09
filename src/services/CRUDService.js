@@ -116,5 +116,6 @@ module.exports = {
     getAllUser: getAllUser,
     getUserInfoById: getUserInfoById,
     updateUserData: updateUserData,
-    deleteUserById: deleteUserById
+    deleteUserById: deleteUserById,
+    hashUserPassword: hashUserPassword
 }
